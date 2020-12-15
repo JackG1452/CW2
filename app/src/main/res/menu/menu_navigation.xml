@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/recentImage"
+        android:title="Recently Uploaded"
+        android:icon="@drawable/ic_image"/>
+
+    <item
+        android:id="@+id/home"
+        android:title="Home"
+        android:icon="@drawable/ic_home"/>
+    <item
+        android:id="@+id/textGallery"
+        android:title="Saved Texts"
+        android:icon="@drawable/ic_text_fields"/>
+
+    <item
+        android:id="@+id/logOut"
+        android:title="Log Out"
+        android:icon="@drawable/ic_exit"/>
+
+
+</menu>

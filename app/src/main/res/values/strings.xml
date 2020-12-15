@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">CW2</string>
+    <string name="txt_password">Enter Password</string>
+    <string name="btn_login">Login</string>
+    <string name="btn_register">Register</string>
+    <string name="txt_email">Enter Email</string>
+    <string name="txt_title">User Registration</string>
+    <string name="txt_Login">Already Registered. Login Me!</string>
+    <string name="txt_log_title">User Login</string>
+    <string name="txt_log_email">Enter Email</string>
+    <string name="txt_log_password">Enter Password</string>
+    <string name="txt_Register">Not have an account? Signup here</string>
+    <string name="btn_Logout">Logout</string>
+    <string name="txt_pro_title">Large Text</string>
+    <string name="title_activity_test">MainActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+</resources>
