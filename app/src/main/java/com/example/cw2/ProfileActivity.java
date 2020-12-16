@@ -78,9 +78,11 @@ public class ProfileActivity extends AppCompatActivity implements SensorEventLis
     private TextView textView;
     private SparseArray checker;
     private String textViewText;
+    private TextView textViewTitle;
     private String link;
     private ImageView imageView;
     private Button ProcessButton;
+    private Button chooseButton;
 
     private FirebaseDatabase mDatabase;
     private DatabaseReference myRef;
@@ -131,47 +133,66 @@ public class ProfileActivity extends AppCompatActivity implements SensorEventLis
         });
 
         ProcessButton = (Button) findViewById(R.id.buttonProcess);
+        chooseButton = (Button) findViewById(R.id.buttonLoadPicture);
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
                 SensorManager.SENSOR_DELAY_NORMAL);
         lastUpdateTime=System.currentTimeMillis();
 
-        firebaseAuth = FirebaseAuth.getInstance();
-        FirebaseUser currentUser = firebaseAuth.getCurrentUser();
-        TextView textViewUserEmail = (TextView) findViewById(R.id.Pro_Title);
-        textViewUserEmail.setText("Welcome " + currentUser.getEmail());
-        UID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        imageView = findViewById(R.id.imgView);
+        textViewTitle = findViewById(R.id.Pro_Title);
+        textView = findViewById(R.id.textView5);
+        if (isNetworkConnected() == true) {
+            if (isConecctedToInternet() == true) {
 
-        storage = FirebaseStorage.getInstance();
-        storageReference = storage.getReference();
+                firebaseAuth = FirebaseAuth.getInstance();
+                FirebaseUser currentUser = firebaseAuth.getCurrentUser();
+                TextView textViewUserEmail = (TextView) findViewById(R.id.Pro_Title);
+                textViewUserEmail.setText("Welcome " + currentUser.getEmail());
+                UID = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        mDatabase = FirebaseDatabase.getInstance();
-        myRef = mDatabase.getReference(UID).child("images");
-        textRef = mDatabase.getReference(UID).child("textValues");
+                storage = FirebaseStorage.getInstance();
+                storageReference = storage.getReference();
+
+                mDatabase = FirebaseDatabase.getInstance();
+                myRef = mDatabase.getReference(UID).child("images");
+                textRef = mDatabase.getReference(UID).child("textValues");
+            }
+            else {
+                Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
+                GlideApp.with(this)
+                        .asBitmap()
+                        .load(R.drawable.without_internet)
+                        .into(imageView);
+                chooseButton.setVisibility(View.GONE);
+                ProcessButton.setVisibility(View.GONE);
+                textViewTitle.setText("Error with connection to Firebase");
+                textView.setText("No Internet Connection, Please check your connection and reload page to view home");
+            }
+        }
+        else {
+            Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
+            GlideApp.with(this)
+                    .asBitmap()
+                    .load(R.drawable.without_internet)
+                    .into(imageView);
+            chooseButton.setVisibility(View.GONE);
+            ProcessButton.setVisibility(View.GONE);
+            textViewTitle.setText("Error with connection to Firebase");
+            textView.setText("No Internet Connection, Please check your connection and reload page to view home");
+        }
 
         final Button buttonLoadImage = (Button) findViewById(R.id.buttonLoadPicture);
         buttonLoadImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View arg0) {
-//                if(buttonLoadImage.getText().equals("Choose Image")){
                     Intent i = new Intent(
                             Intent.ACTION_PICK,
                             android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                     startActivityForResult(i, RESULT_LOAD_IMAGE);
                 }
-//                else{
-//                    uploadImage();
-//                }
-//            }
         });
-    }
-
-    public void logOut(View view){
-        firebaseAuth.signOut();
-        finish();
-        Toast.makeText(this, "Logout Successful", Toast.LENGTH_LONG).show();
-        startActivity(new Intent(ProfileActivity.this, LoginActivity.class));
     }
 
     @Override
@@ -189,8 +210,6 @@ public class ProfileActivity extends AppCompatActivity implements SensorEventLis
                 buttonLoadImage.setText("Choose New Image");
                 textView = findViewById(R.id.textView);
                 textView.setText("");
-//                Button ProcessButton = (Button) findViewById(R.id.buttonProcess);
-//                ProcessButton.setVisibility(View.VISIBLE);
                 textView = findViewById(R.id.textView);
                 processText(textView);
                 String check = textView.getText().toString();
@@ -207,93 +226,81 @@ public class ProfileActivity extends AppCompatActivity implements SensorEventLis
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void uploadImageAndText(View view) {
         if (isNetworkConnected() == true) {
-            try {
-                if (isConnected() == true) {
-                    if (selectedImage != null && checker.size() != 0) {
-                        final ProgressDialog progressDialog = new ProgressDialog(this);
-                        progressDialog.setTitle("Uploading...");
-                        progressDialog.show();
-                        int random = ThreadLocalRandom.current().nextInt();
-                        String imageName = "image" + random;
-                        //String imageName = UUID.randomUUID().toString();
-                        //writeToTempFile(imageName);
-                        final StorageReference ref = storageReference.child(UID + "/images/" + imageName);
-                        UploadTask uploadTask = ref.putFile(selectedImage);
+            if (isConecctedToInternet() == true) {
+                if (selectedImage != null && checker.size() != 0) {
+                    final ProgressDialog progressDialog = new ProgressDialog(this);
+                    progressDialog.setTitle("Uploading...");
+                    progressDialog.show();
+                    int random = ThreadLocalRandom.current().nextInt();
+                    String imageName = "image" + random;
+                    final StorageReference ref = storageReference.child(UID + "/images/" + imageName);
+                    UploadTask uploadTask = ref.putFile(selectedImage);
 
-                        Task<Uri> urlTask = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
-                            @Override
-                            public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
-                                if (!task.isSuccessful()) {
-                                    throw task.getException();
-                                }
-
-                                // Continue with the task to get the download URL
-                                return ref.getDownloadUrl();
+                    Task<Uri> urlTask = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+                        @Override
+                        public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
+                            if (!task.isSuccessful()) {
+                                throw task.getException();
                             }
-                        }).addOnCompleteListener(new OnCompleteListener<Uri>() {
-                            @Override
-                            public void onComplete(@NonNull Task<Uri> task) {
-                                if (task.isSuccessful()) {
-                                    int random = ThreadLocalRandom.current().nextInt();
-                                    String rando = "image" + random;
 
-                                    Uri downloadUri = task.getResult();
-                                    Log.d("Checking Value", "DownloadLink:" + downloadUri);
-                                    //DatabaseReference newImage = myRef.push();
-                                    link = downloadUri.toString();
-                                    //newImage.setValue(link);
-                                    writeToTempFile(downloadUri.toString(), "temp_Details.txt");
-                                    writeToTempFile(textViewText, "temp_Write.txt");
-                                    //DatabaseReference newText = textRef.push();
-                                    //newText.setValue(textViewText);
+                            // Continue with the task to get the download URL
+                            return ref.getDownloadUrl();
+                        }
+                    }).addOnCompleteListener(new OnCompleteListener<Uri>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Uri> task) {
+                            if (task.isSuccessful()) {
+                                int random = ThreadLocalRandom.current().nextInt();
+                                String rando = "image" + random;
 
-                                    HashMap<String, Object> result = new HashMap<>();
-                                    result.put("link", link);
-                                    result.put("text", textViewText);
+                                Uri downloadUri = task.getResult();
+                                Log.d("Checking Value", "DownloadLink:" + downloadUri);
+                                link = downloadUri.toString();
+                                writeToTempFile(downloadUri.toString(), UID+"_temp_Details.txt");
+                                writeToTempFile(textViewText, UID+"_temp_Write.txt");
 
-                                    FirebaseDatabase.getInstance().getReference(UID).child("ImageDetails").child(rando).updateChildren(result);
+                                HashMap<String, Object> result = new HashMap<>();
+                                result.put("link", link);
+                                result.put("text", textViewText);
 
-                                    progressDialog.dismiss();
-                                    textView = findViewById(R.id.textView);
-                                    textView.setText("");
-                                    Toast.makeText(ProfileActivity.this, "Uploaded", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    // Handle failures
-                                    // ...
-                                }
-                            }
-                        }).addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
+                                FirebaseDatabase.getInstance().getReference(UID).child("ImageDetails").child(rando).updateChildren(result);
+
                                 progressDialog.dismiss();
-                                Toast.makeText(ProfileActivity.this, "Failed " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                textView = findViewById(R.id.textView);
+                                textView.setText("");
+                                Toast.makeText(ProfileActivity.this, "Uploaded", Toast.LENGTH_SHORT).show();
+                            } else {
+                                // Handle failures
+                                // ...
                             }
-                        });
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            progressDialog.dismiss();
+                            Toast.makeText(ProfileActivity.this, "Failed " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    });
 
 
-                        imageView = (ImageView) findViewById(R.id.imgView);
-                        imageView.setImageResource(R.drawable.default_image);
-                        Button buttonLoadImage = (Button) findViewById(R.id.buttonLoadPicture);
-                        buttonLoadImage.setText("Choose Image");
-//            Button ProcessButton = (Button) findViewById(R.id.buttonProcess);
-//            ProcessButton.setVisibility(View.GONE);
-                    } else {
-                        Toast.makeText(ProfileActivity.this, "Error: No text to upload, please choose image with text", Toast.LENGTH_SHORT).show();
-                        ProcessButton.setVisibility(View.GONE);
-                    }
+                    imageView = (ImageView) findViewById(R.id.imgView);
+                    imageView.setImageResource(R.drawable.default_image);
+                    Button buttonLoadImage = (Button) findViewById(R.id.buttonLoadPicture);
+                    buttonLoadImage.setText("Choose Image");
                 } else {
-                    Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
-                    GlideApp.with(this)
-                            .asBitmap()
-                            .load(R.drawable.without_internet)
-                            .into(imageView);
-                    textView.setText("No Internet Connection, Please check your connection and reload page to view most recent image");
+                    Toast.makeText(ProfileActivity.this, "Error: No text to upload, please choose image with text", Toast.LENGTH_SHORT).show();
                     ProcessButton.setVisibility(View.GONE);
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } else {
+                Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
+                GlideApp.with(this)
+                        .asBitmap()
+                        .load(R.drawable.without_internet)
+                        .into(imageView);
+                chooseButton.setVisibility(View.GONE);
+                ProcessButton.setVisibility(View.GONE);
+                textViewTitle.setText("Error with connection to Firebase");
+                textView.setText("No Internet Connection, Please check your connection and reload page to view home");
             }
         }
         else{
@@ -302,8 +309,10 @@ public class ProfileActivity extends AppCompatActivity implements SensorEventLis
                     .asBitmap()
                     .load(R.drawable.without_internet)
                     .into(imageView);
-            textView.setText("No Internet Connection, Please check your connection and reload page to view most recent image");
+            chooseButton.setVisibility(View.GONE);
             ProcessButton.setVisibility(View.GONE);
+            textViewTitle.setText("Error with connection to Firebase");
+            textView.setText("No Internet Connection, Please check your connection and reload page to view home");
         }
     }
 
@@ -415,5 +424,32 @@ public class ProfileActivity extends AppCompatActivity implements SensorEventLis
     public boolean isConnected() throws InterruptedException, IOException {
         String command = "ping -c 1 console.firebase.google.com";
         return Runtime.getRuntime().exec(command).waitFor() == 0;
+    }
+
+    public boolean isConecctedToInternet() {
+        Runtime runtime = Runtime.getRuntime();
+        try {
+            //If running on normal/real devices Ping Google
+            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
+            int     exitValue = ipProcess.waitFor();
+            Log.d(" ExitValue 1st Cond",""+exitValue);
+            if(exitValue==0){
+                return true;
+            }
+            else{
+                //for emulator will ping localhost
+                ipProcess = runtime.exec("/system/bin/ping -c 1 127.0.0.1");
+                exitValue = ipProcess.waitFor();
+                Log.d(" ExitValue 2nd Cond",""+exitValue);
+                if(exitValue==0) {
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            }
+        } catch (IOException e)          { e.printStackTrace(); }
+        catch (InterruptedException e) { e.printStackTrace(); }
+        return false;
     }
 }
