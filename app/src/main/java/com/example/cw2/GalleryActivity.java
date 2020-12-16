@@ -61,6 +61,8 @@ public class GalleryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_gallery);
         getSupportActionBar().setTitle("Recently Uploaded");
 
+        firebaseAuth = FirebaseAuth.getInstance();
+
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         bottomNavigationView.setSelectedItemId(R.id.recentImage);
         bottomNavigationView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -89,60 +91,50 @@ public class GalleryActivity extends AppCompatActivity {
             }
         });
 
-
-        firebaseAuth = FirebaseAuth.getInstance();
-        FirebaseUser currentUser = firebaseAuth.getCurrentUser();
-        UID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
-        TextView textViewUserEmail = (TextView) findViewById(R.id.textView);
-        textViewUserEmail.setText("Welcome " + currentUser.getEmail());
-
         TextView textView = (TextView) findViewById(R.id.textView2);
-
+        UID = FirebaseAuth.getInstance().getCurrentUser().getUid();
         try{
-            lastSavedImage = readFromFile("temp_Details.txt");
-            text = readFromFile("temp_Write.txt");
+            lastSavedImage = readFromFile(UID+"_temp_Details.txt");
+            text = readFromFile(UID+"_temp_Write.txt");
         }
         catch (IOError error){
-
+            GlideApp.with(this)
+                    .asBitmap()
+                    .load(R.drawable.noimageuploaded)
+                    .into(imageView);
+            textView.setText("No Image Uploaded, Please try uploading an image to see this page loaded with most recent uploaded image");
         }
 
 
         imageView = findViewById(R.id.imageView);
 
         if(isNetworkConnected() == true){
-            try {
-                if(isConnected() ==true){
-                    //If readFromFile for recentImageUrl is empty or null
-                    if(lastSavedImage == null || lastSavedImage.isEmpty()){
-                        GlideApp.with(this)
-                                .asBitmap()
-                                .load(R.drawable.noimageuploaded)
-                                .into(imageView);
-                        textView.setText("No Image Uploaded, Please try uploading an image to see this page loaded with most recent uploaded image");
-                    }
-                    //Else readFromFile for recentImageUrl should have value to loadImage
-                    else{
-                        Log.d("checkingValue",""+lastSavedImage);
-                        String reference = lastSavedImage;
-                        Log.d("checkingValue","" + reference);
-                        loadImage(reference);
-                        textView.setText(text);
-                        textView.setMovementMethod(new ScrollingMovementMethod());
-                    }
-                }
-                else{
-                    Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
+            if(isConecctedToInternet() ==true){
+                //If readFromFile for recentImageUrl is empty or null
+                if(lastSavedImage == null || lastSavedImage.isEmpty()){
                     GlideApp.with(this)
                             .asBitmap()
-                            .load(R.drawable.without_internet)
+                            .load(R.drawable.noimageuploaded)
                             .into(imageView);
-                    textView.setText("No Internet Connection, Please check your connection and reload page to view most recent image");
+                    textView.setText("No Image Uploaded, Please try uploading an image to see this page loaded with most recent uploaded image");
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+                //Else readFromFile for recentImageUrl should have value to loadImage
+                else{
+                    Log.d("checkingValue",""+lastSavedImage);
+                    String reference = lastSavedImage;
+                    Log.d("checkingValue","" + reference);
+                    loadImage(reference);
+                    textView.setText(text);
+                    textView.setMovementMethod(new ScrollingMovementMethod());
+                }
+            }
+            else{
+                Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
+                GlideApp.with(this)
+                        .asBitmap()
+                        .load(R.drawable.without_internet)
+                        .into(imageView);
+                textView.setText("No Internet Connection, Please check your connection and reload page to view most recent image");
             }
         }
         else{
@@ -221,9 +213,25 @@ public class GalleryActivity extends AppCompatActivity {
     public boolean isConecctedToInternet() {
         Runtime runtime = Runtime.getRuntime();
         try {
-            Process ipProcess = runtime.exec("ping -c 1 console.firebase.google.com");
+            //If running on normal/real devices Ping Google
+            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
             int     exitValue = ipProcess.waitFor();
-            return true;
+            Log.d(" ExitValue 1st Cond",""+exitValue);
+            if(exitValue==0){
+                return true;
+            }
+            else{
+                //for emulator will ping localhost
+                ipProcess = runtime.exec("/system/bin/ping -c 1 127.0.0.1");
+                exitValue = ipProcess.waitFor();
+                Log.d(" ExitValue 2nd Cond",""+exitValue);
+                if(exitValue==0) {
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            }
         } catch (IOException e)          { e.printStackTrace(); }
         catch (InterruptedException e) { e.printStackTrace(); }
         return false;

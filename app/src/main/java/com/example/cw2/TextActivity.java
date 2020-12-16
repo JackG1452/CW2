@@ -46,6 +46,9 @@ public class TextActivity extends AppCompatActivity {
         setContentView(R.layout.activity__text);
         getSupportActionBar().setTitle("Text Gallery");
 
+        firebaseAuth = FirebaseAuth.getInstance();
+        UID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         bottomNavigationView.setSelectedItemId(R.id.textGallery);
         bottomNavigationView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -80,47 +83,38 @@ public class TextActivity extends AppCompatActivity {
         listView = findViewById(R.id.listView);
         textView = (TextView) findViewById(R.id.textView);
 
-
-
-
         if (isNetworkConnected() == true) {
-            try {
-                if (isConnected() == true) {
+            if (isConecctedToInternet() == true) {
 
-                    textView.setVisibility(View.GONE);
-                    final ArrayList<String> list = new ArrayList<>();
-                    final ArrayAdapter adapter = new ArrayAdapter<String>(this, R.layout.list_item, list);
-                    listView.setAdapter(adapter);
+                textView.setVisibility(View.GONE);
+                final ArrayList<String> list = new ArrayList<>();
+                final ArrayAdapter adapter = new ArrayAdapter<String>(this, R.layout.list_item, list);
+                listView.setAdapter(adapter);
 
-                    DatabaseReference reference = FirebaseDatabase.getInstance().getReference(UID).child("ImageDetails");
-                    reference.addValueEventListener(new ValueEventListener(){
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot){
-                            for (DataSnapshot snapshot : dataSnapshot.getChildren()){
-                                /*Might Be useful for deleting, dont remove
-                                Log.d("Checking Value",""+snapshot.getKey().toString());*/
-                                Information info = snapshot.getValue(Information.class);
-                                //String txt = info.getLink() + " : " + info.getText();
-                                String txt = info.getText();
-                                list.add(txt);
-                            }
-                            adapter.notifyDataSetChanged();
-
+                DatabaseReference reference = FirebaseDatabase.getInstance().getReference(UID).child("ImageDetails");
+                reference.addValueEventListener(new ValueEventListener(){
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot){
+                        for (DataSnapshot snapshot : dataSnapshot.getChildren()){
+                            /*Might Be useful for deleting, dont remove
+                            Log.d("Checking Value",""+snapshot.getKey().toString());*/
+                            Information info = snapshot.getValue(Information.class);
+                            //String txt = info.getLink() + " : " + info.getText();
+                            String txt = info.getText();
+                            list.add(txt);
                         }
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError databaseError) {
-                        }
-                    });
-                }
-                else{
-                    Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
-                    textView.setText("No Internet Connection, Please check your connection and reload page to view most recent image");
-                    listView.setVisibility(View.GONE);
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+                        adapter.notifyDataSetChanged();
+
+                    }
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                    }
+                });
+            }
+            else{
+                Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
+                textView.setText("No Internet Connection, Please check your connection and reload page to view most recent image");
+                listView.setVisibility(View.GONE);
             }
         }
         else{
@@ -152,6 +146,33 @@ public class TextActivity extends AppCompatActivity {
     public boolean isConnected() throws InterruptedException, IOException {
         String command = "ping -c 1 console.firebase.google.com";
         return Runtime.getRuntime().exec(command).waitFor() == 0;
+    }
+
+    public boolean isConecctedToInternet() {
+        Runtime runtime = Runtime.getRuntime();
+        try {
+            //If running on normal/real devices Ping Google
+            Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
+            int     exitValue = ipProcess.waitFor();
+            Log.d(" ExitValue 1st Cond",""+exitValue);
+            if(exitValue==0){
+                return true;
+            }
+            else{
+                //for emulator will ping localhost
+                ipProcess = runtime.exec("/system/bin/ping -c 1 127.0.0.1");
+                exitValue = ipProcess.waitFor();
+                Log.d(" ExitValue 2nd Cond",""+exitValue);
+                if(exitValue==0) {
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            }
+        } catch (IOException e)          { e.printStackTrace(); }
+        catch (InterruptedException e) { e.printStackTrace(); }
+        return false;
     }
 
 }

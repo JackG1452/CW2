@@ -5,7 +5,8 @@
     android:id="@+id/label"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
+    android:fontFamily="@font/black_ops_one"
     android:padding="10dp"
-    android:textSize="16dp"
-    android:textStyle="bold"
-    android:textIsSelectable="true"/>
+    android:textIsSelectable="true"
+    android:textSize="14dp"
+    android:textStyle="bold" />

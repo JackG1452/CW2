@@ -98,13 +98,24 @@ public class LoginActivity extends AppCompatActivity {
     public boolean isConecctedToInternet() {
         Runtime runtime = Runtime.getRuntime();
         try {
+            //If running on normal/real devices Ping Google
             Process ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
             int     exitValue = ipProcess.waitFor();
-            Log.d(" ExitValue ",""+exitValue);
+            Log.d(" ExitValue 1st Cond",""+exitValue);
             if(exitValue==0){
                 return true;
-            }else{
-                return false;
+            }
+            else{
+                //for emulator will ping localhost
+                ipProcess = runtime.exec("/system/bin/ping -c 1 127.0.0.1");
+                exitValue = ipProcess.waitFor();
+                Log.d(" ExitValue 2nd Cond",""+exitValue);
+                if(exitValue==0) {
+                    return true;
+                }
+                else{
+                    return false;
+                }
             }
         } catch (IOException e)          { e.printStackTrace(); }
         catch (InterruptedException e) { e.printStackTrace(); }
